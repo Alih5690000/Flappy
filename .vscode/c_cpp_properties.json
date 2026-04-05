@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+            "${workspaceFolder}/**",
+            "/workspaces/Flappy/emsdk/upstream/emscripten/cache/sysroot/include",
+            "~/.emscripten_cache/sysroot/include" 
+        ],
+
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}
