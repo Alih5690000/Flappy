@@ -23,7 +23,7 @@ void Sprite_update(Sprite* self,SDL_Renderer* renderer,float dt){
     SDL_RenderCopyF(renderer,self->texture,NULL,&self->rect);
 }
 
-void Sprite_handleCollidable(Sprite* self){
+void Sprite_handleCollidableX(Sprite* self){
     for (int i=0;i<Vector_Size(self->sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
         if (spr->collidable){
@@ -34,19 +34,30 @@ void Sprite_handleCollidable(Sprite* self){
                     self->vel_x=0;
                 }
                 else if (self->vel_x<0){
-                    self->rect.x=intersection.x+intersection.w;
+                    self->rect.x=intersection.x+self->rect.w;
                     self->vel_x=0;
                 }
                 else{
                     if (spr->vel_x>0){
-                        self->rect.x=intersection.x-intersection.w;
-                    }
-                    else if (spr->vel_x<0){
                         self->rect.x=intersection.x+intersection.w;
                     }
+                    else if (spr->vel_x<0){
+                        self->rect.x=intersection.x-self->rect.w;
+                    }
                 }
+            }
+        }
+    }
+}
+
+void Sprite_handleCollidableY(Sprite* self){
+    for (int i=0;i<Vector_Size(self->sprites);i++){
+        Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
+        if (spr->collidable){
+            SDL_FRect intersection;
+            if (SDL_IntersectFRect(&self->rect,&spr->rect,&intersection)){
                 if (self->vel_y>0){
-                    self->rect.y=intersection.y-intersection.h;
+                    self->rect.y=intersection.y-self->rect.h;
                     self->vel_y=0;
                 }
                 else if (self->vel_y<0){
