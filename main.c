@@ -11,6 +11,14 @@ SDL_Renderer* renderer;
 SDL_Texture* wintexture;
 int running=1;
 
+void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
+    self->vel_x=-200;
+    self->rect.x+=self->vel_x * dt;
+    Sprite_handleCollidableX(self);
+    Sprite_handleCollidableY(self);
+    SDL_RenderCopyF(renderer,self->texture,NULL,&self->rect);
+}
+
 typedef struct Player{
     Sprite base;
     float rotation;
@@ -22,10 +30,20 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
         self->base.vel_y=-300;
         self->rotation=0.f;
     }
+    if (keys[SDL_SCANCODE_R]){
+        emscripten_log(1,"Player rect: %f, %f, %f, %f",
+        self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
+    }
+    if (keys[SDL_SCANCODE_E]){
+        self->base.rect=(SDL_FRect){100,100,100,100};
+        self->base.vel_y=0;
+        self->rotation=90.f;
+
+    }
     self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
     self->rotation=SDL_clamp((self->base.vel_y!=0?self->base.vel_y:1)/600,-1,1)*90;
     self->base.rect.y+=self->base.vel_y * dt;
-    Sprite_handleCollidable((Sprite*)self);
+    Sprite_handleCollidableY((Sprite*)self);
     SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->rotation
         ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
 }
@@ -67,7 +85,7 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
             .vel_y = 0,
             .gravity = &scene->gravity,
             .weight = 1.f,
-            .collidable = 0,
+            .collidable = 1,
             .active=1,
             .sprites = scene->sprites,
             .update = (SpriteUpdateFunc)Player_update,
@@ -94,11 +112,12 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     SDL_FRect pipe_rect={500,0,100,800};
     pipe->texture = pipe_txt;
     pipe->rect = pipe_rect;
-    pipe->update=Sprite_update;
+    pipe->update=Wall_update;
     pipe->destroy=Sprite_destroy;
     pipe->active=1;
     pipe->collidable=1;
     pipe->vel_x=-200;
+    pipe->weight=9999.f;
     pipe->sprites=scene->sprites;
     Vector_PushBack(scene->sprites,&pipe);
 }
