@@ -62,7 +62,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
         self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     }
     if (keys[SDL_SCANCODE_E]){
-        self->base.rect=(SDL_FRect){100,100,100,100};
+        self->base.rect=(SDL_FRect){100,100,50,50};
         self->base.vel_y=0;
         self->rotation=90.f;
 
@@ -101,7 +101,7 @@ Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
     SDL_Texture* plr_txt=DeepCopyTexture(renderer,txt);
     SDL_SetTextureBlendMode(plr_txt,SDL_BLENDMODE_BLEND);
     SDL_DestroyTexture(txt);
-    SDL_FRect plr_rect={100,100,100,100};
+    SDL_FRect plr_rect={100,100,50,50};
     plr->base = (Sprite){
         .texture = plr_txt,
         .rect = plr_rect,
@@ -160,10 +160,12 @@ void loop1(void* ptr){
     SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
     SDL_RenderClear(scene->renderer);
     {
-        if (!scene->GameOver && scene->waiting>1.f){
+        if (!scene->GameOver && scene->waiting>5.f){
             scene->waiting=0.f;
-            SDL_FRect rect={1000,rand()%400+200,100,300};
+            int y=rand()%400+200;
+            SDL_FRect rect={1000,y,100,1000};
             Sprite* pipe=CreatePipe(rect,scene->sprites);
+            rect=(SDL_FRect){1000,y-800,100,600};
             Vector_PushBack(scene->sprites,&pipe);
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
