@@ -42,6 +42,7 @@ Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
     SDL_RenderFillRect(renderer,&idk);
     SDL_SetRenderTarget(renderer,prev);
     pipe->id=PIPE;
+    pipe->passed=0;
     pipe->texture = pipe_txt;
     pipe->rect = rect;
     pipe->update=Wall_update;
@@ -101,8 +102,10 @@ typedef struct Scene1{
     float waiting;
     Vector* sprites;
     int GameOver;
-    int score;
+    float score;
 } Scene1;
+
+Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites);
 
 void reset1(Scene1* scene){
     scene->gravity=500;
@@ -113,7 +116,7 @@ void reset1(Scene1* scene){
         Vector_erase(scene->sprites,i);
     }
     {
-        scene->plr->base.destroy(scene->plr);
+        scene->plr->base.destroy(&scene->plr->base);
         Player* plr=CreatePlayer(scene->renderer,&scene->gravity,scene->sprites);
         scene->plr=plr;
         Vector_PushBack(scene->sprites,&plr);
@@ -156,6 +159,7 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->wintexture=wintexture;
     scene->gravity=500;
     scene->GameOver=0;
+    scene->score=0;
     scene->sprites=CreateVector(sizeof(Sprite*));
     scene->bgtxt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_TARGET,1000,800);
@@ -167,8 +171,6 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
         scene->plr=plr;
         Vector_PushBack(scene->sprites,&plr);
     }
-    Sprite* pipe=CreatePipe((SDL_FRect){500,500,100,300},scene->sprites);
-    Vector_PushBack(scene->sprites,&pipe);
 }
 
 void loop1(void* ptr){
@@ -212,8 +214,12 @@ void loop1(void* ptr){
         }
         for (int i=0;i<Vector_Size(scene->sprites);i++){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
-            if (spr->id==PIPE && spr->active && spr->rect.x + spr->rect.w < scene->plr->base.rect.x && !scene->GameOver){
-                scene->score++;
+            if (spr->id==PIPE && spr->active && 
+                spr->rect.x + spr->rect.w < scene->plr->base.rect.x && 
+                !scene->GameOver && !spr->passed && spr!=(Sprite*)scene->plr){
+                scene->score+=0.5f;
+                spr->passed=1;
+                emscripten_log(1,"Score: %.1f",scene->score);
             }
         }
         if (scene->GameOver){

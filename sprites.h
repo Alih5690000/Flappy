@@ -12,6 +12,7 @@ typedef struct Sprite{
     float weight;
     int collidable;
     int active;
+    int passed;
     Vector* sprites;
     void (*update)(struct Sprite* self,SDL_Renderer* renderer,float dt);
     void (*destroy)(struct Sprite* self);
