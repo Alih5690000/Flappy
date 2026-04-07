@@ -18,7 +18,48 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Texture* wintexture;
 TTF_Font* font;
+int maxScore;
 int running=1;
+
+void Load(){
+    EM_ASM(
+        FS.mkdir("/data");
+        FS.mount(IDBFS, {}, "/data");
+        FS-syncfs(true, function(err) {
+            if (err) {
+                console.error("Error syncing filesystem:", err);
+            } else {
+                console.log("Filesystem synced successfully.");
+            }
+        });
+    );
+    FILE* file = fopen("/data/maxscore.txt", "r");
+    if (file) {
+        fscanf(file, "%d", &maxScore);
+        fclose(file);
+    } else {
+        maxScore = 0;
+    }
+}
+
+void write(){
+    EM_ASM(
+        FS.syncfs(function(err) {
+            if (err) {
+                console.error("Error syncing filesystem:", err);
+            } else {
+                console.log("Filesystem synced successfully.");
+            }
+        });
+    );
+    FILE* file = fopen("/data/maxscore.txt", "w");
+    if (file) {
+        fprintf(file, "%d", maxScore);
+        fclose(file);
+    } else {
+        emscripten_log(1, "Error opening file for writing.");
+    }
+}
 
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
     self->vel_x=-200;
@@ -248,6 +289,10 @@ void loop1(void* ptr){
         SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g1);
         SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g2);
         if (!scene->plr->base.active){
+            if (scene->score>maxScore){
+                maxScore=(int)scene->score;
+                write();
+            }
             scene->GameOver=1;
         }
         for (int i=0;i<Vector_Size(scene->sprites);i++){
@@ -271,6 +316,7 @@ void loop1(void* ptr){
 }
 
 int main(){
+    Load();
     srand(time(NULL));
     SDL_Init(SDL_INIT_EVERYTHING);
     IMG_Init(IMG_INIT_PNG);
