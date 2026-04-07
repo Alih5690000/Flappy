@@ -1,15 +1,22 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <emscripten.h>
 #include "vec.c"
 #include "vid.h"
 #include "sprites.h"
 #include <stdlib.h>
 
+typedef enum SPRITES{
+    PLAYER,
+    PIPE
+} SPRITES;
+
 em_arg_callback_func currloop;
 
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Texture* wintexture;
+TTF_Font* font;
 int running=1;
 
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
@@ -34,6 +41,7 @@ Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
     SDL_SetRenderDrawColor(renderer,0,255,0,255);
     SDL_RenderFillRect(renderer,&idk);
     SDL_SetRenderTarget(renderer,prev);
+    pipe->id=PIPE;
     pipe->texture = pipe_txt;
     pipe->rect = rect;
     pipe->update=Wall_update;
@@ -93,7 +101,24 @@ typedef struct Scene1{
     float waiting;
     Vector* sprites;
     int GameOver;
+    int score;
 } Scene1;
+
+void reset1(Scene1* scene){
+    scene->gravity=500;
+    scene->GameOver=0;
+    for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
+        Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
+        spr->destroy(spr);
+        Vector_erase(scene->sprites,i);
+    }
+    {
+        scene->plr->base.destroy(scene->plr);
+        Player* plr=CreatePlayer(scene->renderer,&scene->gravity,scene->sprites);
+        scene->plr=plr;
+        Vector_PushBack(scene->sprites,&plr);
+    }
+}
 
 Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
     Player* plr=(Player*)malloc(sizeof(Player));
@@ -115,6 +140,7 @@ Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
         .update = (SpriteUpdateFunc)Player_update,
         .destroy = (SpriteDestroyFunc)Player_destroy
     };
+    plr->base.id=PLAYER;
     plr->rotation=90.f;
     plr->base.update=(SpriteUpdateFunc)Player_update;
     plr->base.destroy=(SpriteDestroyFunc)Player_destroy;
@@ -165,7 +191,9 @@ void loop1(void* ptr){
             int y=rand()%400+200;
             SDL_FRect rect={1000,y,100,1000};
             Sprite* pipe=CreatePipe(rect,scene->sprites);
+            Vector_PushBack(scene->sprites,&pipe);
             rect=(SDL_FRect){1000,y-800,100,600};
+            pipe=CreatePipe(rect,scene->sprites);
             Vector_PushBack(scene->sprites,&pipe);
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
@@ -175,14 +203,18 @@ void loop1(void* ptr){
                 Vector_erase(scene->sprites,i);
             }
         }
-        emscripten_log(1,"Sprites count: %d",Vector_Size(scene->sprites));
         for (int i=0;i<Vector_Size(scene->sprites);i++){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
             spr->update(spr,scene->renderer,scene->dt);
         }
-        emscripten_log(1,"Plr is active: %d",scene->plr->base.active);
         if (!scene->plr->base.active){
             scene->GameOver=1;
+        }
+        for (int i=0;i<Vector_Size(scene->sprites);i++){
+            Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
+            if (spr->id==PIPE && spr->active && spr->rect.x + spr->rect.w < scene->plr->base.rect.x && !scene->GameOver){
+                scene->score++;
+            }
         }
         if (scene->GameOver){
             SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
@@ -202,6 +234,7 @@ int main(){
         1000,800,
         SDL_WINDOW_SHOWN);
     renderer=SDL_CreateRenderer(window,-1,0);
+    font=TTF_OpenFont("assets/Minecraft.ttf",24);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
     Scene1 scene;

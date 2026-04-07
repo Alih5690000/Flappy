@@ -1,10 +1,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "vec.c"
+int SPRITE_ID_COUNTER=0;
 typedef struct Sprite{
     SDL_Texture* texture;
     SDL_FRect rect;
     float vel_x;
+    int id;
     float vel_y;
     float* gravity;
     float weight;
