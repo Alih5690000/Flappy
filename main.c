@@ -14,9 +14,35 @@ int running=1;
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
     self->vel_x=-200;
     self->rect.x+=self->vel_x * dt;
-    Sprite_handleCollidableX(self);
-    Sprite_handleCollidableY(self);
+    for (int i=0;i<Vector_Size(self->sprites);i++){
+        Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
+        if (spr->active && spr!=self && SDL_HasIntersectionF(&self->rect, &spr->rect)){
+            spr->active=0;
+        }
+    }
     SDL_RenderCopyF(renderer,self->texture,NULL,&self->rect);
+}
+
+Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
+    Sprite* pipe=(Sprite*)malloc(sizeof(Sprite));
+    SDL_Texture* pipe_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_TARGET,100,800);
+    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
+    SDL_SetRenderTarget(renderer,pipe_txt);
+    SDL_Rect idk={0,0,100,800};
+    SDL_SetRenderDrawColor(renderer,0,255,0,255);
+    SDL_RenderFillRect(renderer,&idk);
+    SDL_SetRenderTarget(renderer,prev);
+    pipe->texture = pipe_txt;
+    pipe->rect = rect;
+    pipe->update=Wall_update;
+    pipe->destroy=Sprite_destroy;
+    pipe->active=1;
+    pipe->collidable=1;
+    pipe->vel_x=-200;
+    pipe->weight=9999.f;
+    pipe->sprites=sprites;
+    return pipe;
 }
 
 typedef struct Player{
@@ -70,13 +96,13 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->dt=0;
     {
         Player* plr=(Player*)malloc(sizeof(Player));
-        SDL_Texture* plr_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,100,100);
-        SDL_Texture* prev=SDL_GetRenderTarget(renderer);
-        SDL_SetRenderTarget(renderer,plr_txt);
+        SDL_Texture* plr_txt=LoadImage("assets/Player.png",scene->renderer);
+        SDL_Texture* prev=SDL_GetRenderTarget(scene->renderer);
+        SDL_SetRenderTarget(scene->renderer,plr_txt);
         SDL_Rect idk={0,75,100,25};
-        SDL_SetRenderDrawColor(renderer,255,0,255,255);
-        SDL_RenderFillRect(renderer,&idk);
-        SDL_SetRenderTarget(renderer,prev);
+        SDL_SetRenderDrawColor(scene->renderer,255,0,255,255);
+        SDL_RenderFillRect(scene->renderer,&idk);
+        SDL_SetRenderTarget(scene->renderer,prev);
         SDL_FRect plr_rect={100,100,100,100};
         plr->base = (Sprite){
             .texture = plr_txt,
@@ -100,25 +126,7 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
         emscripten_log(1,"Player's base %d",&plr->base);
         Vector_PushBack(scene->sprites,&plr);
     }
-    Sprite* pipe=(Sprite*)malloc(sizeof(Sprite));
-    SDL_Texture* pipe_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_TARGET,100,800);
-    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
-    SDL_SetRenderTarget(renderer,pipe_txt);
-    SDL_Rect idk={0,0,100,800};
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderFillRect(renderer,&idk);
-    SDL_SetRenderTarget(renderer,prev);
-    SDL_FRect pipe_rect={500,0,100,800};
-    pipe->texture = pipe_txt;
-    pipe->rect = pipe_rect;
-    pipe->update=Wall_update;
-    pipe->destroy=Sprite_destroy;
-    pipe->active=1;
-    pipe->collidable=1;
-    pipe->vel_x=-200;
-    pipe->weight=9999.f;
-    pipe->sprites=scene->sprites;
+    Sprite* pipe=CreatePipe((SDL_FRect){500,500,100,300},scene->sprites);
     Vector_PushBack(scene->sprites,&pipe);
 }
 
@@ -133,7 +141,7 @@ void loop1(void* ptr){
                 running=0;
         }
         SDL_SetRenderTarget(scene->renderer,wintexture);
-        SDL_SetRenderDrawColor(scene->renderer,0,0,0,255);
+        SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
         SDL_RenderClear(scene->renderer);
         {
             for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
@@ -155,6 +163,8 @@ void loop1(void* ptr){
 }
 
 int main(){
+    SDL_Init(SDL_INIT_EVERYTHING);
+    IMG_Init(IMG_INIT_PNG);
     window=SDL_CreateWindow("Flappy",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,
         1000,800,

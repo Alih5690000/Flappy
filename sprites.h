@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "vec.c"
 typedef struct Sprite{
     SDL_Texture* texture;
@@ -86,6 +87,21 @@ void Sprite_handleCollidableX(Sprite* self){
             }
         }
     }
+}
+
+SDL_Texture* LoadImage(const char* path,SDL_Renderer* renderer){
+    SDL_Surface* surface=IMG_Load(path);
+    if (!surface){
+        emscripten_log(1,"Failed to load image: %s",IMG_GetError());
+        return NULL;
+    }
+    SDL_Texture* texture=SDL_CreateTextureFromSurface(renderer,surface);
+    SDL_FreeSurface(surface);
+    if (!texture){
+        emscripten_log(1,"Failed to create texture: %s",SDL_GetError());
+        return NULL;
+    }
+    return texture;
 }
 
 void Sprite_handleCollidableY(Sprite* self){
