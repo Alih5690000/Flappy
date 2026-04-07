@@ -28,6 +28,7 @@ SDL_Texture* DeepCopyTexture(SDL_Renderer* renderer, SDL_Texture* src)
     SDL_Texture* oldTarget = SDL_GetRenderTarget(renderer);
 
     SDL_SetRenderTarget(renderer, dst);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, src, NULL, NULL);
 

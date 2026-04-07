@@ -5,6 +5,7 @@
 #include "vid.h"
 #include "sprites.h"
 #include <stdlib.h>
+#include <time.h>
 
 typedef enum SPRITES{
     PLAYER,
@@ -95,6 +96,9 @@ typedef struct Scene1{
     SDL_Renderer* renderer;
     SDL_Texture* wintexture;
     SDL_Texture* bgtxt;
+    SDL_FRect r1,r2;
+    SDL_Texture* ground_txt;
+    SDL_FRect g1,g2;
     Player* plr;
     float dt;
     int start,end;
@@ -159,11 +163,25 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->wintexture=wintexture;
     scene->gravity=500;
     scene->GameOver=0;
+    scene->r1=(SDL_FRect){0,0,1000,800};
+    scene->r2=(SDL_FRect){1000,0,1000,800};
+    scene->g1=(SDL_FRect){0,700,1000,100};
+    scene->g2=(SDL_FRect){1000,700,1000,100};
     scene->score=0;
     scene->sprites=CreateVector(sizeof(Sprite*));
     scene->bgtxt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_TARGET,1000,800);
-    
+    scene->ground_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_TARGET,1000,100);
+    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
+    SDL_SetRenderTarget(renderer,scene->bgtxt);
+    SDL_SetRenderDrawColor(renderer,155,155,255,255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderTarget(renderer,scene->ground_txt);
+    SDL_SetRenderDrawColor(renderer,100,255,100,255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer,0,0,0,255);
+    SDL_SetRenderTarget(renderer,prev);
     Vector_Resize(scene->sprites,500);
     scene->dt=0;
     {
@@ -185,8 +203,26 @@ void loop1(void* ptr){
             running=0;
     }
     SDL_SetRenderTarget(scene->renderer,wintexture);
-    SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
+    SDL_SetRenderDrawColor(scene->renderer,0,0,0,255);
     SDL_RenderClear(scene->renderer);
+    scene->r1.x-=100*scene->dt;
+    scene->r2.x-=100*scene->dt;
+    if (scene->r1.x<scene->r1.w*-1){
+        scene->r1.x=scene->r2.x+scene->r2.w;
+    }
+    if (scene->r2.x<scene->r2.w*-1){
+        scene->r2.x=scene->r1.x+scene->r1.w;
+    }
+    scene->r1.x-=100*scene->dt;
+    scene->r2.x-=100*scene->dt;
+    if (scene->g1.x<scene->g1.w*-1){
+        scene->g1.x=scene->g2.x+scene->g2.w;
+    }
+    if (scene->g2.x<scene->g2.w*-1){
+        scene->g2.x=scene->g1.x+scene->g1.w;
+    }
+    SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r1);
+    SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r2);
     {
         if (!scene->GameOver && scene->waiting>5.f){
             scene->waiting=0.f;
@@ -209,6 +245,8 @@ void loop1(void* ptr){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
             spr->update(spr,scene->renderer,scene->dt);
         }
+        SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g1);
+        SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g2);
         if (!scene->plr->base.active){
             scene->GameOver=1;
         }
@@ -233,6 +271,7 @@ void loop1(void* ptr){
 }
 
 int main(){
+    srand(time(NULL));
     SDL_Init(SDL_INIT_EVERYTHING);
     IMG_Init(IMG_INIT_PNG);
     window=SDL_CreateWindow("Flappy",
