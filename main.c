@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <emscripten.h>
 #include "vec.c"
+#include "vid.h"
 #include "sprites.h"
 #include <stdlib.h>
 
@@ -70,8 +71,11 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     self->rotation=SDL_clamp((self->base.vel_y!=0?self->base.vel_y:1)/600,-1,1)*90;
     self->base.rect.y+=self->base.vel_y * dt;
     Sprite_handleCollidableY((Sprite*)self);
-    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->rotation
+    int res=SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->rotation
         ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
+    if (res!=0){
+        emscripten_log(1,"Render error %s",SDL_GetError());
+    }
 }
 
 void Player_destroy(Player* self){
@@ -89,27 +93,23 @@ typedef struct Scene1{
     int GameOver;
 } Scene1;
 
-Player* CreatePlayer(){
+Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
     Player* plr=(Player*)malloc(sizeof(Player));
-    scene->plr=plr;
-    SDL_Texture* plr_txt=LoadImage("assets/Player.png",scene->renderer);
-    SDL_Texture* prev=SDL_GetRenderTarget(scene->renderer);
-    SDL_SetRenderTarget(scene->renderer,plr_txt);
-    SDL_Rect idk={0,75,100,25};
-    SDL_SetRenderDrawColor(scene->renderer,255,0,255,255);
-    SDL_RenderFillRect(scene->renderer,&idk);
-    SDL_SetRenderTarget(scene->renderer,prev);
+    SDL_Texture* txt=LoadImage("assets/Player.png",renderer);
+    SDL_Texture* plr_txt=DeepCopyTexture(renderer,txt);
+    SDL_SetTextureBlendMode(plr_txt,SDL_BLENDMODE_BLEND);
+    SDL_DestroyTexture(txt);
     SDL_FRect plr_rect={100,100,100,100};
     plr->base = (Sprite){
         .texture = plr_txt,
         .rect = plr_rect,
         .vel_x = 0,
         .vel_y = 0,
-        .gravity = &scene->gravity,
+        .gravity = gravity,
         .weight = 1.f,
         .collidable = 1,
         .active=1,
-        .sprites = scene->sprites,
+        .sprites = sprites,
         .update = (SpriteUpdateFunc)Player_update,
         .destroy = (SpriteDestroyFunc)Player_destroy
     };
@@ -132,7 +132,8 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     Vector_Resize(scene->sprites,500);
     scene->dt=0;
     {
-        Player* plr=CreatePlayer();
+        Player* plr=CreatePlayer(scene->renderer,&scene->gravity,scene->sprites);
+        scene->plr=plr;
         Vector_PushBack(scene->sprites,&plr);
     }
     Sprite* pipe=CreatePipe((SDL_FRect){500,500,100,300},scene->sprites);
@@ -170,7 +171,7 @@ void loop1(void* ptr){
         }
         if (scene->GameOver){
             SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
-            SDL_RenderClear(scene->renderer);
+            SDL_RenderFillRect(scene->renderer,NULL);
         }
     }
     SDL_SetRenderTarget(scene->renderer,NULL);
@@ -186,6 +187,7 @@ int main(){
         1000,800,
         SDL_WINDOW_SHOWN);
     renderer=SDL_CreateRenderer(window,-1,0);
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
     Scene1 scene;
     init1(&scene, renderer,wintexture);
