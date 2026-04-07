@@ -39,7 +39,7 @@ Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
     pipe->update=Wall_update;
     pipe->destroy=Sprite_destroy;
     pipe->active=1;
-    pipe->collidable=1;
+    pipe->collidable=0;
     pipe->vel_x=-200;
     pipe->weight=9999.f;
     pipe->sprites=sprites;
