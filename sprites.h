@@ -70,6 +70,9 @@ void Sprite_handleCollidableX(Sprite* self){
             float m1 = fabs(self->weight * self->vel_x);
             float m2 = fabs(spr->weight  * spr->vel_x);
 
+            if (fabs(spr->vel_x) < 0.01f) m2 = spr->weight * 1000;
+            if (fabs(self->vel_x) < 0.01f) m1 = self->weight * 1000;
+
             if (m1 > m2){
                 if (self->vel_x > 0){
                     spr->rect.x = self->rect.x + self->rect.w;
@@ -109,26 +112,26 @@ void Sprite_handleCollidableY(Sprite* self){
         Sprite* spr = *(Sprite**)Vector_Get(self->sprites, i);
         if (!spr->collidable || spr == self) continue;
 
-        if (SDL_HasIntersectionF(&self->rect, &spr->rect) && !ResolveX(self, spr)){
-                
-            float m1 = fabs(self->weight * self->vel_y);
-            float m2 = fabs(spr->weight  * spr->vel_y);
+        float left   = SDL_max(self->rect.x, spr->rect.x);
+        float right  = SDL_min(self->rect.x + self->rect.w, spr->rect.x + spr->rect.w);
+        float top    = SDL_max(self->rect.y, spr->rect.y);
+        float bottom = SDL_min(self->rect.y + self->rect.h, spr->rect.y + spr->rect.h);
 
-            if (m1 > m2){
-                if (self->vel_y > 0){
-                    spr->rect.y = self->rect.y + self->rect.h;
-                } else if (self->vel_y < 0){
-                    spr->rect.y = self->rect.y - spr->rect.h;
-                }
+        float px = right - left;
+        float py = bottom - top;
+
+        if (px > 0 && py > 0 && py <= px){
+
+            float centerA = self->rect.y + self->rect.h * 0.5f;
+            float centerB = spr->rect.y + spr->rect.h * 0.5f;
+
+            if (centerA < centerB){
+                self->rect.y -= py;
+            } else {
+                self->rect.y += py;
             }
-            else {
-                if (spr->vel_y > 0){
-                    self->rect.y = spr->rect.y + spr->rect.h;
-                } else if (spr->vel_y < 0){
-                    self->rect.y = spr->rect.y - self->rect.h;
-                }
-                self->vel_y = 0;
-            }
+
+            self->vel_y = 0;
         }
     }
 }

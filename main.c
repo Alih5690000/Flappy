@@ -85,10 +85,12 @@ void Player_destroy(Player* self){
 typedef struct Scene1{
     SDL_Renderer* renderer;
     SDL_Texture* wintexture;
+    SDL_Texture* bgtxt;
     Player* plr;
     float dt;
     int start,end;
     float gravity;
+    float waiting;
     Vector* sprites;
     int GameOver;
 } Scene1;
@@ -129,6 +131,9 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->gravity=500;
     scene->GameOver=0;
     scene->sprites=CreateVector(sizeof(Sprite*));
+    scene->bgtxt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_TARGET,1000,800);
+    
     Vector_Resize(scene->sprites,500);
     scene->dt=0;
     {
@@ -145,6 +150,7 @@ void loop1(void* ptr){
     scene->start=SDL_GetTicks();
     scene->dt=(scene->start-scene->end)/1000.f;
     scene->end=scene->start;
+    scene->waiting+=scene->dt;
     SDL_Event event;
     while(SDL_PollEvent(&event)){
         if(event.type==SDL_QUIT)
@@ -154,8 +160,11 @@ void loop1(void* ptr){
     SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
     SDL_RenderClear(scene->renderer);
     {
-        if (!scene->plr->base.active){
-            scene->GameOver=1;
+        if (!scene->GameOver && scene->waiting>1.f){
+            scene->waiting=0.f;
+            SDL_FRect rect={1000,rand()%400+200,100,300};
+            Sprite* pipe=CreatePipe(rect,scene->sprites);
+            Vector_PushBack(scene->sprites,&pipe);
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
@@ -168,6 +177,10 @@ void loop1(void* ptr){
         for (int i=0;i<Vector_Size(scene->sprites);i++){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
             spr->update(spr,scene->renderer,scene->dt);
+        }
+        emscripten_log(1,"Plr is active: %d",scene->plr->base.active);
+        if (!scene->plr->base.active){
+            scene->GameOver=1;
         }
         if (scene->GameOver){
             SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
