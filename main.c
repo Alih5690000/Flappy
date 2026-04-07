@@ -81,49 +81,58 @@ void Player_destroy(Player* self){
 typedef struct Scene1{
     SDL_Renderer* renderer;
     SDL_Texture* wintexture;
+    Player* plr;
     float dt;
     int start,end;
     float gravity;
     Vector* sprites;
+    int GameOver;
 } Scene1;
+
+Player* CreatePlayer(){
+    Player* plr=(Player*)malloc(sizeof(Player));
+    scene->plr=plr;
+    SDL_Texture* plr_txt=LoadImage("assets/Player.png",scene->renderer);
+    SDL_Texture* prev=SDL_GetRenderTarget(scene->renderer);
+    SDL_SetRenderTarget(scene->renderer,plr_txt);
+    SDL_Rect idk={0,75,100,25};
+    SDL_SetRenderDrawColor(scene->renderer,255,0,255,255);
+    SDL_RenderFillRect(scene->renderer,&idk);
+    SDL_SetRenderTarget(scene->renderer,prev);
+    SDL_FRect plr_rect={100,100,100,100};
+    plr->base = (Sprite){
+        .texture = plr_txt,
+        .rect = plr_rect,
+        .vel_x = 0,
+        .vel_y = 0,
+        .gravity = &scene->gravity,
+        .weight = 1.f,
+        .collidable = 1,
+        .active=1,
+        .sprites = scene->sprites,
+        .update = (SpriteUpdateFunc)Player_update,
+        .destroy = (SpriteDestroyFunc)Player_destroy
+    };
+    plr->rotation=90.f;
+    plr->base.update=(SpriteUpdateFunc)Player_update;
+    plr->base.destroy=(SpriteDestroyFunc)Player_destroy;
+    emscripten_log(1,"Player's update: %d",plr->base.update);
+    emscripten_log(1,"Player_update: %d",Player_update);
+    emscripten_log(1,"Player %d",plr);
+    emscripten_log(1,"Player's base %d",&plr->base);
+    return plr;
+}
 
 void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->renderer=renderer;
     scene->wintexture=wintexture;
     scene->gravity=500;
+    scene->GameOver=0;
     scene->sprites=CreateVector(sizeof(Sprite*));
     Vector_Resize(scene->sprites,500);
     scene->dt=0;
     {
-        Player* plr=(Player*)malloc(sizeof(Player));
-        SDL_Texture* plr_txt=LoadImage("assets/Player.png",scene->renderer);
-        SDL_Texture* prev=SDL_GetRenderTarget(scene->renderer);
-        SDL_SetRenderTarget(scene->renderer,plr_txt);
-        SDL_Rect idk={0,75,100,25};
-        SDL_SetRenderDrawColor(scene->renderer,255,0,255,255);
-        SDL_RenderFillRect(scene->renderer,&idk);
-        SDL_SetRenderTarget(scene->renderer,prev);
-        SDL_FRect plr_rect={100,100,100,100};
-        plr->base = (Sprite){
-            .texture = plr_txt,
-            .rect = plr_rect,
-            .vel_x = 0,
-            .vel_y = 0,
-            .gravity = &scene->gravity,
-            .weight = 1.f,
-            .collidable = 1,
-            .active=1,
-            .sprites = scene->sprites,
-            .update = (SpriteUpdateFunc)Player_update,
-            .destroy = (SpriteDestroyFunc)Player_destroy
-        };
-        plr->rotation=90.f;
-        plr->base.update=(SpriteUpdateFunc)Player_update;
-        plr->base.destroy=(SpriteDestroyFunc)Player_destroy;
-        emscripten_log(1,"Player's update: %d",plr->base.update);
-        emscripten_log(1,"Player_update: %d",Player_update);
-        emscripten_log(1,"Player %d",plr);
-        emscripten_log(1,"Player's base %d",&plr->base);
+        Player* plr=CreatePlayer();
         Vector_PushBack(scene->sprites,&plr);
     }
     Sprite* pipe=CreatePipe((SDL_FRect){500,500,100,300},scene->sprites);
@@ -136,30 +145,37 @@ void loop1(void* ptr){
     scene->dt=(scene->start-scene->end)/1000.f;
     scene->end=scene->start;
     SDL_Event event;
-        while(SDL_PollEvent(&event)){
-            if(event.type==SDL_QUIT)
-                running=0;
+    while(SDL_PollEvent(&event)){
+        if(event.type==SDL_QUIT)
+            running=0;
+    }
+    SDL_SetRenderTarget(scene->renderer,wintexture);
+    SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
+    SDL_RenderClear(scene->renderer);
+    {
+        if (!scene->plr->base.active){
+            scene->GameOver=1;
         }
-        SDL_SetRenderTarget(scene->renderer,wintexture);
-        SDL_SetRenderDrawColor(scene->renderer,155,155,255,255);
-        SDL_RenderClear(scene->renderer);
-        {
-            for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
-                Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
-                if (!spr->active){
-                    spr->destroy(spr);
-                    Vector_erase(scene->sprites,i);
-                }
-            }
-            emscripten_log(1,"Sprites count: %d",Vector_Size(scene->sprites));
-            for (int i=0;i<Vector_Size(scene->sprites);i++){
-                Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
-                spr->update(spr,scene->renderer,scene->dt);
+        for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
+            Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
+            if (!spr->active){
+                spr->destroy(spr);
+                Vector_erase(scene->sprites,i);
             }
         }
-        SDL_SetRenderTarget(scene->renderer,NULL);
-        SDL_RenderCopy(scene->renderer,scene->wintexture,NULL,NULL);
-        SDL_RenderPresent(scene->renderer);
+        emscripten_log(1,"Sprites count: %d",Vector_Size(scene->sprites));
+        for (int i=0;i<Vector_Size(scene->sprites);i++){
+            Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
+            spr->update(spr,scene->renderer,scene->dt);
+        }
+        if (scene->GameOver){
+            SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
+            SDL_RenderClear(scene->renderer);
+        }
+    }
+    SDL_SetRenderTarget(scene->renderer,NULL);
+    SDL_RenderCopy(scene->renderer,scene->wintexture,NULL,NULL);
+    SDL_RenderPresent(scene->renderer);
 }
 
 int main(){
