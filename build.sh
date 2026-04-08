@@ -3,8 +3,11 @@ emcc main.c -o index.html \
 -s USE_SDL_IMAGE=2 \
 -s USE_SDL_MIXER=2 \
 -s USE_SDL_TTF=2 \
--lidbfs \
 -s SDL2_IMAGE_FORMATS='["png","jpg"]' \
 -s SDL2_MIXER_FORMATS='["mp3","ogg"]' \
+-s FORCE_FILESYSTEM=1 \
+-s EXPORTED_RUNTIME_METHODS=['FS'] \
+-s EXPORTED_FUNCTIONS='["_main","_Load_"]' \
+-lidbfs.js \
 --preload-file assets@assets \
 -O2 && python -m http.server 8000

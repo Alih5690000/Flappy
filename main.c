@@ -21,18 +21,7 @@ TTF_Font* font;
 int maxScore;
 int running=1;
 
-void Load(){
-    EM_ASM(
-        FS.mkdir("/data");
-        FS.mount(IDBFS, {}, "/data");
-        FS-syncfs(true, function(err) {
-            if (err) {
-                console.error("Error syncing filesystem:", err);
-            } else {
-                console.log("Filesystem synced successfully.");
-            }
-        });
-    );
+void Load_(){
     FILE* file = fopen("/data/maxscore.txt", "r");
     if (file) {
         fscanf(file, "%d", &maxScore);
@@ -40,18 +29,25 @@ void Load(){
     } else {
         maxScore = 0;
     }
+    emscripten_log(1, "Max Score: %d", maxScore);
 }
 
-void write(){
+void Load(){
     EM_ASM(
-        FS.syncfs(function(err) {
+        FS.mkdir("/data");
+        FS.mount(IDBFS, {}, "/data");
+        FS.syncfs(true, function(err) {
             if (err) {
                 console.error("Error syncing filesystem:", err);
             } else {
                 console.log("Filesystem synced successfully.");
+                _Load_();
             }
         });
     );
+}
+
+void Write(){
     FILE* file = fopen("/data/maxscore.txt", "w");
     if (file) {
         fprintf(file, "%d", maxScore);
@@ -59,6 +55,15 @@ void write(){
     } else {
         emscripten_log(1, "Error opening file for writing.");
     }
+    EM_ASM(
+        FS.syncfs(false,function(err) {
+            if (err) {
+                console.error("Error syncing filesystem:", err);
+            } else {
+                console.log("Filesystem synced successfully.");
+            }
+        });
+    );
 }
 
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
@@ -139,6 +144,7 @@ typedef struct Scene1{
     SDL_Texture* bgtxt;
     SDL_FRect r1,r2;
     SDL_Texture* ground_txt;
+    SDL_Texture* score_txt;
     SDL_FRect g1,g2;
     Player* plr;
     float dt;
@@ -147,6 +153,7 @@ typedef struct Scene1{
     float waiting;
     Vector* sprites;
     int GameOver;
+    float lastScore;
     float score;
 } Scene1;
 
@@ -204,6 +211,20 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->wintexture=wintexture;
     scene->gravity=500;
     scene->GameOver=0;
+    {
+        char buff[256];
+        snprintf(buff, sizeof(buff), "Score: %d", (int)scene->score);
+        SDL_Surface* surf=TTF_RenderText_Solid(font,buff,(SDL_Color){0,0,0,255});
+        if (!surf){
+            emscripten_log(1,"Error creating surface: %s",TTF_GetError());
+            _Exit(1);
+        }
+        if (scene->score_txt){
+            SDL_DestroyTexture(scene->score_txt);
+        }
+        scene->score_txt=SDL_CreateTextureFromSurface(renderer,surf);
+        SDL_FreeSurface(surf);
+    }
     scene->r1=(SDL_FRect){0,0,1000,800};
     scene->r2=(SDL_FRect){1000,0,1000,800};
     scene->g1=(SDL_FRect){0,700,1000,100};
@@ -291,7 +312,7 @@ void loop1(void* ptr){
         if (!scene->plr->base.active){
             if (scene->score>maxScore){
                 maxScore=(int)scene->score;
-                write();
+                Write();
             }
             scene->GameOver=1;
         }
@@ -305,6 +326,27 @@ void loop1(void* ptr){
                 emscripten_log(1,"Score: %.1f",scene->score);
             }
         }
+        if (scene->lastScore!=(int)scene->score){
+            scene->lastScore=(int)scene->score;
+            char buff[256];
+            snprintf(buff, sizeof(buff), "Score: %d", (int)scene->score);
+            SDL_Surface* surf=TTF_RenderText_Solid(font,buff,(SDL_Color){0,0,0,255});
+            if (!surf){
+                emscripten_log(1,"Error creating surface: %s",TTF_GetError());
+                _Exit(1);
+            }
+            if (scene->score_txt){
+                SDL_DestroyTexture(scene->score_txt);
+            }
+            scene->score_txt=SDL_CreateTextureFromSurface(scene->renderer,surf);
+            SDL_FreeSurface(surf);
+        }
+        scene->lastScore=(int)scene->score;
+        int w, h;
+        SDL_QueryTexture(scene->score_txt, NULL, NULL, &w, &h);
+
+        SDL_FRect dst = {10, 10, (float)w, (float)h};
+        SDL_RenderCopyF(scene->renderer, scene->score_txt, NULL, &dst);
         if (scene->GameOver){
             SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
             SDL_RenderFillRect(scene->renderer,NULL);
@@ -320,6 +362,7 @@ int main(){
     srand(time(NULL));
     SDL_Init(SDL_INIT_EVERYTHING);
     IMG_Init(IMG_INIT_PNG);
+    TTF_Init();
     window=SDL_CreateWindow("Flappy",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,
         1000,800,
