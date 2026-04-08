@@ -148,6 +148,8 @@ typedef struct Scene1{
     SDL_FRect g1,g2;
     Player* plr;
     float dt;
+    SDL_FRect gameOverRect;
+    SDL_Texture* gameOver_txt;
     int start,end;
     float gravity;
     float waiting;
@@ -211,6 +213,12 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->wintexture=wintexture;
     scene->gravity=500;
     scene->GameOver=0;
+    {
+        SDL_Surface* surf=TTF_RenderText_Solid(font,"Game Over",(SDL_Color){255,255,255,255});
+        scene->gameOver_txt=SDL_CreateTextureFromSurface(scene->renderer,surf);
+        SDL_DestroySurface(surf);
+    }
+    scene->gameOverRect=(SDL_Frect){500,-100,300,100};
     {
         char buff[256];
         snprintf(buff, sizeof(buff), "Score: %d", (int)scene->score);
