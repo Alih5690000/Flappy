@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+void DullFunc(){}
+
 typedef enum SPRITES{
     PLAYER,
     PIPE
@@ -75,25 +77,38 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
             spr->alive=0;
         }
     }
-    SDL_RenderCopyF(renderer,self->texture,NULL,&self->rect);
+    float scale = 3.0f;
+
+    SDL_FRect drawRect = {
+        .w = self->rect.w * scale,
+        .h = self->rect.h,
+        .x = self->rect.x - (self->rect.w * scale - self->rect.w) / 2.0f,
+        .y =(self->flip?self->rect.y+35:self->rect.y-60)
+    };
+    SDL_SetRenderDrawColor(renderer,255,0,0,100);
+    SDL_RenderDrawRectF(renderer,&self->rect);
+    if (!self->flip){
+        SDL_RenderCopyExF(renderer,self->texture,NULL,&drawRect,0,NULL,SDL_FLIP_NONE);
+    }
+    else {
+        SDL_RenderCopyExF(renderer,self->texture,NULL,&drawRect,0,NULL,SDL_FLIP_VERTICAL);
+    }
 }
 
-Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
+void Wall_destroy(Sprite* s){}
+
+SDL_Texture* pipe_txt_cache;
+
+Sprite* CreatePipe(SDL_FRect rect, Vector* sprites,int flip){
     Sprite* pipe=(Sprite*)malloc(sizeof(Sprite));
-    SDL_Texture* pipe_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_TARGET,100,800);
-    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
-    SDL_SetRenderTarget(renderer,pipe_txt);
-    SDL_Rect idk={0,0,100,800};
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderFillRect(renderer,&idk);
-    SDL_SetRenderTarget(renderer,prev);
+    SDL_Texture* pipe_txt=pipe_txt_cache;
     pipe->id=PIPE;
     pipe->passed=0;
+    pipe->flip=flip;
     pipe->texture = pipe_txt;
     pipe->rect = rect;
     pipe->update=Wall_update;
-    pipe->destroy=Sprite_destroy;
+    pipe->destroy=Wall_destroy;
     pipe->active=1;
     pipe->collidable=0;
     pipe->vel_x=-200;
@@ -133,7 +148,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
         self->base.vel_y=0;
         self->rotation=90.f;
     }
-    if (self->base.rect.y<0 || self->base.rect.y + self->base.rect.h > 800){
+    if (self->base.rect.y<0 || self->base.rect.y + self->base.rect.h > 700){
         self->base.active=0;
     }
     self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
@@ -200,6 +215,7 @@ void reset1(Scene1* scene){
     scene->gravity=500;
     scene->GameOver=0;
     scene->has_corpse=0;
+    scene->score=0;
     scene->gameOverRect=(SDL_FRect){500,-100,300,100};
     for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
         Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
@@ -216,10 +232,7 @@ void reset1(Scene1* scene){
 
 Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
     Player* plr=(Player*)malloc(sizeof(Player));
-    SDL_Texture* txt=plr_txt_cache;
-    SDL_Texture* plr_txt=DeepCopyTexture(renderer,txt);
-    SDL_SetTextureBlendMode(plr_txt,SDL_BLENDMODE_BLEND);
-    SDL_DestroyTexture(txt);
+    SDL_Texture* plr_txt=plr_txt_cache;
     SDL_FRect plr_rect={100,100,50,50};
     plr->base = (Sprite){
         .texture = plr_txt,
@@ -283,19 +296,8 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->g2=(SDL_FRect){1000,700,1000,100};
     scene->score=0;
     scene->sprites=CreateVector(sizeof(Sprite*));
-    scene->bgtxt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_TARGET,1000,800);
-    scene->ground_txt=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_TARGET,1000,100);
-    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
-    SDL_SetRenderTarget(renderer,scene->bgtxt);
-    SDL_SetRenderDrawColor(renderer,155,155,255,255);
-    SDL_RenderClear(renderer);
-    SDL_SetRenderTarget(renderer,scene->ground_txt);
-    SDL_SetRenderDrawColor(renderer,100,255,100,255);
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer,0,0,0,255);
-    SDL_SetRenderTarget(renderer,prev);
+    scene->bgtxt=LoadImage("assets/bg.jpg",renderer);
+    scene->ground_txt=LoadImage("assets/ground.jpg",renderer);
     Vector_Resize(scene->sprites,500);
     scene->dt=0;
     {
@@ -328,8 +330,8 @@ void loop1(void* ptr){
     if (scene->r2.x<scene->r2.w*-1){
         scene->r2.x=scene->r1.x+scene->r1.w;
     }
-    scene->r1.x-=100*scene->dt;
-    scene->r2.x-=100*scene->dt;
+    scene->g1.x-=200*scene->dt;
+    scene->g2.x-=200*scene->dt;
     if (scene->g1.x<scene->g1.w*-1){
         scene->g1.x=scene->g2.x+scene->g2.w;
     }
@@ -339,14 +341,14 @@ void loop1(void* ptr){
     SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r1);
     SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r2);
     {
-        if (!scene->GameOver && scene->waiting>5.f){
+        if (!scene->GameOver && scene->waiting>2.5f){
             scene->waiting=0.f;
             int y=rand()%400+200;
             SDL_FRect rect={1000,y,100,1000};
-            Sprite* pipe=CreatePipe(rect,scene->sprites);
+            Sprite* pipe=CreatePipe(rect,scene->sprites,0);
             Vector_PushBack(scene->sprites,&pipe);
             rect=(SDL_FRect){1000,y-800,100,600};
-            pipe=CreatePipe(rect,scene->sprites);
+            pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
@@ -372,12 +374,7 @@ void loop1(void* ptr){
                 PlayerCorpse* a=malloc(sizeof(PlayerCorpse));
                 *a=(PlayerCorpse){
                     .base.texture=scene->plr->base.texture,
-                    .base.rect=(
-                        scene->plr->base.rect.y+scene->plr->base.rect.h>800?
-                        (SDL_FRect){scene->plr->base.rect.x,800-scene->plr->base.rect.h,
-                            scene->plr->base.rect.w,scene->plr->base.rect.h}:
-                        scene->plr->base.rect
-                    ),
+                    .base.rect=scene->plr->base.rect,
                     .base.vel_y=-400,
                     .base.vel_x=100,
                     .base.gravity=scene->plr->base.gravity,
@@ -458,7 +455,7 @@ int main(){
     Load();
     srand(time(NULL));
     SDL_Init(SDL_INIT_EVERYTHING);
-    IMG_Init(IMG_INIT_PNG);
+    IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     TTF_Init();
     window=SDL_CreateWindow("Flappy",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,
@@ -467,6 +464,7 @@ int main(){
     renderer=SDL_CreateRenderer(window,-1,0);
     font=TTF_OpenFont("assets/Minecraft.ttf",24);
     plr_txt_cache=LoadImage("assets/Player.png",renderer);
+    pipe_txt_cache=LoadImage("assets/pipe.png",renderer);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
     Scene1 scene;

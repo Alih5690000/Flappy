@@ -13,6 +13,7 @@ typedef struct Sprite{
     int collidable;
     int alive;
     int active;
+    int flip;
     int passed;
     Vector* sprites;
     void (*update)(struct Sprite* self,SDL_Renderer* renderer,float dt);
