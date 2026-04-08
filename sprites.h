@@ -11,6 +11,7 @@ typedef struct Sprite{
     float* gravity;
     float weight;
     int collidable;
+    int alive;
     int active;
     int passed;
     Vector* sprites;

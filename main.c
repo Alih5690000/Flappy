@@ -71,8 +71,8 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
     self->rect.x+=self->vel_x * dt;
     for (int i=0;i<Vector_Size(self->sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
-        if (spr->active && spr!=self && SDL_HasIntersectionF(&self->rect, &spr->rect)){
-            spr->active=0;
+        if (spr->alive && spr!=self && SDL_HasIntersectionF(&self->rect, &spr->rect)){
+            spr->alive=0;
         }
     }
     SDL_RenderCopyF(renderer,self->texture,NULL,&self->rect);
@@ -108,7 +108,13 @@ typedef struct Player{
     int pressed;
 } Player;
 
+SDL_Texture* plr_txt_cache;
+
 void Player_update(Player* self,SDL_Renderer* renderer,float dt){
+    if (!self->base.alive){
+        self->base.active=0;
+        return;
+    }
     const Uint8* keys= SDL_GetKeyboardState(NULL);
     if (keys[SDL_SCANCODE_SPACE] && !self->pressed){
         self->base.vel_y=-300;
@@ -142,7 +148,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
 }
 
 void Player_destroy(Player* self){
-    SDL_DestroyTexture(self->base.texture);
+
 }
 
 typedef struct PlayerCorpse{
@@ -151,11 +157,18 @@ typedef struct PlayerCorpse{
 } PlayerCorpse;
 
 void PlayerCorpse_update(PlayerCorpse* self,SDL_Renderer* renderer,float dt){
+    emscripten_log(1,"PlayerCorpse update rect is %f, %f, %f, %f",
+        self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     self->angle+=200 * dt;
+    self->angle=(int)self->angle%360;
     self->base.rect.y+=self->base.vel_y * dt;
     self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
+    emscripten_log(1,"PlayerCorpse vel_y: %f",self->base.vel_y);
     SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->angle
         ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
+    if (self->base.rect.y>800){
+        self->base.active=0;
+    }
 }
 
 typedef struct Scene1{
@@ -168,6 +181,7 @@ typedef struct Scene1{
     SDL_FRect g1,g2;
     Player* plr;
     float dt;
+    int has_corpse;
     SDL_FRect gameOverRect;
     SDL_Texture* gameOver_txt;
     SDL_Texture* tryAgain_txt;
@@ -201,7 +215,7 @@ void reset1(Scene1* scene){
 
 Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
     Player* plr=(Player*)malloc(sizeof(Player));
-    SDL_Texture* txt=LoadImage("assets/Player.png",renderer);
+    SDL_Texture* txt=plr_txt_cache;
     SDL_Texture* plr_txt=DeepCopyTexture(renderer,txt);
     SDL_SetTextureBlendMode(plr_txt,SDL_BLENDMODE_BLEND);
     SDL_DestroyTexture(txt);
@@ -219,6 +233,7 @@ Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites){
         .update = (SpriteUpdateFunc)Player_update,
         .destroy = (SpriteDestroyFunc)Player_destroy
     };
+    plr->base.alive=1;
     plr->base.id=PLAYER;
     plr->rotation=90.f;
     plr->base.update=(SpriteUpdateFunc)Player_update;
@@ -235,6 +250,7 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     scene->wintexture=wintexture;
     scene->gravity=500;
     scene->GameOver=0;
+    scene->has_corpse=0;
     {
         SDL_Surface* surf=TTF_RenderText_Solid(font,"Game Over",(SDL_Color){255,255,255,255});
         scene->gameOver_txt=SDL_CreateTextureFromSurface(scene->renderer,surf);
@@ -350,7 +366,27 @@ void loop1(void* ptr){
                 maxScore=(int)scene->score;
                 Write();
             }
-            scene->GameOver=1;
+            if (!scene->has_corpse){
+                scene->has_corpse=1;
+                PlayerCorpse* a=malloc(sizeof(PlayerCorpse));
+                *a=(PlayerCorpse){
+                    .base.texture=scene->plr->base.texture,
+                    .base.rect=scene->plr->base.rect,
+                    .base.vel_y=200,
+                    .base.vel_x=100,
+                    .base.gravity=scene->plr->base.gravity,
+                    .base.weight=scene->plr->base.weight,
+                    .base.collidable=0,
+                    .base.active=1,
+                    .base.alive=1,
+                    .base.sprites=scene->sprites,
+                    .base.update=(SpriteUpdateFunc)PlayerCorpse_update,
+                    .base.destroy=(SpriteDestroyFunc)Sprite_destroy,
+                    .angle=0
+                };
+                Vector_PushBack(scene->sprites,&a);
+                scene->GameOver=1;
+            }
         }
         for (int i=0;i<Vector_Size(scene->sprites);i++){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
@@ -424,6 +460,7 @@ int main(){
         SDL_WINDOW_SHOWN);
     renderer=SDL_CreateRenderer(window,-1,0);
     font=TTF_OpenFont("assets/Minecraft.ttf",24);
+    plr_txt_cache=LoadImage("assets/Player.png",renderer);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
     Scene1 scene;
