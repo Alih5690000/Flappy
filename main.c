@@ -105,13 +105,18 @@ Sprite* CreatePipe(SDL_FRect rect, Vector* sprites){
 typedef struct Player{
     Sprite base;
     float rotation;
+    int pressed;
 } Player;
 
 void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     const Uint8* keys= SDL_GetKeyboardState(NULL);
-    if (keys[SDL_SCANCODE_SPACE]){
+    if (keys[SDL_SCANCODE_SPACE] && !self->pressed){
         self->base.vel_y=-300;
         self->rotation=0.f;
+        self->pressed=1;
+    }
+    if (!keys[SDL_SCANCODE_SPACE]){
+        self->pressed=0;
     }
     if (keys[SDL_SCANCODE_R]){
         emscripten_log(1,"Player rect: %f, %f, %f, %f",
@@ -121,7 +126,9 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
         self->base.rect=(SDL_FRect){100,100,50,50};
         self->base.vel_y=0;
         self->rotation=90.f;
-
+    }
+    if (self->base.rect.y<0 || self->base.rect.y + self->base.rect.h > 800){
+        self->base.active=0;
     }
     self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
     self->rotation=SDL_clamp((self->base.vel_y!=0?self->base.vel_y:1)/600,-1,1)*90;
@@ -138,6 +145,19 @@ void Player_destroy(Player* self){
     SDL_DestroyTexture(self->base.texture);
 }
 
+typedef struct PlayerCorpse{
+    Sprite base;
+    float angle;
+} PlayerCorpse;
+
+void PlayerCorpse_update(PlayerCorpse* self,SDL_Renderer* renderer,float dt){
+    self->angle+=200 * dt;
+    self->base.rect.y+=self->base.vel_y * dt;
+    self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
+    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->angle
+        ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
+}
+
 typedef struct Scene1{
     SDL_Renderer* renderer;
     SDL_Texture* wintexture;
@@ -150,6 +170,7 @@ typedef struct Scene1{
     float dt;
     SDL_FRect gameOverRect;
     SDL_Texture* gameOver_txt;
+    SDL_Texture* tryAgain_txt;
     int start,end;
     float gravity;
     float waiting;
@@ -164,6 +185,7 @@ Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites);
 void reset1(Scene1* scene){
     scene->gravity=500;
     scene->GameOver=0;
+    scene->gameOverRect=(SDL_FRect){500,-100,300,100};
     for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
         Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
         spr->destroy(spr);
@@ -216,9 +238,14 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
     {
         SDL_Surface* surf=TTF_RenderText_Solid(font,"Game Over",(SDL_Color){255,255,255,255});
         scene->gameOver_txt=SDL_CreateTextureFromSurface(scene->renderer,surf);
-        SDL_DestroySurface(surf);
+        SDL_FreeSurface(surf);
     }
-    scene->gameOverRect=(SDL_Frect){500,-100,300,100};
+    {
+        SDL_Surface* surf=TTF_RenderText_Solid(font,"Press R for try again",(SDL_Color){255,255,255,255});
+        scene->tryAgain_txt=SDL_CreateTextureFromSurface(scene->renderer,surf);
+        SDL_FreeSurface(surf);
+    }
+    scene->gameOverRect=(SDL_FRect){500,-100,300,100};
     {
         char buff[256];
         snprintf(buff, sizeof(buff), "Score: %d", (int)scene->score);
@@ -272,6 +299,7 @@ void loop1(void* ptr){
         if(event.type==SDL_QUIT)
             running=0;
     }
+    const Uint8* keys=SDL_GetKeyboardState(NULL);
     SDL_SetRenderTarget(scene->renderer,wintexture);
     SDL_SetRenderDrawColor(scene->renderer,0,0,0,255);
     SDL_RenderClear(scene->renderer);
@@ -356,8 +384,27 @@ void loop1(void* ptr){
         SDL_FRect dst = {10, 10, (float)w, (float)h};
         SDL_RenderCopyF(scene->renderer, scene->score_txt, NULL, &dst);
         if (scene->GameOver){
+            int draw=0;
+            if (scene->gameOverRect.y<350){
+                scene->gameOverRect.y+=200 * scene->dt;
+            }
+            else if(scene->gameOverRect.y>=350){
+                draw=1;
+                scene->gameOverRect.y=350;
+            }
+            if (keys[SDL_SCANCODE_R]){
+                reset1(scene);
+            }
+            
             SDL_SetRenderDrawColor(scene->renderer,0,0,0,155);
             SDL_RenderFillRect(scene->renderer,NULL);
+
+            if (draw){
+                SDL_RenderCopyF(scene->renderer,scene->tryAgain_txt,
+                    NULL,&(SDL_FRect){500,450,400,50});
+            }
+
+            SDL_RenderCopyF(scene->renderer,scene->gameOver_txt,NULL,&scene->gameOverRect);
         }
     }
     SDL_SetRenderTarget(scene->renderer,NULL);
