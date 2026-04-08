@@ -199,6 +199,7 @@ Player* CreatePlayer(SDL_Renderer* renderer,float* gravity,Vector* sprites);
 void reset1(Scene1* scene){
     scene->gravity=500;
     scene->GameOver=0;
+    scene->has_corpse=0;
     scene->gameOverRect=(SDL_FRect){500,-100,300,100};
     for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
         Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
@@ -371,8 +372,13 @@ void loop1(void* ptr){
                 PlayerCorpse* a=malloc(sizeof(PlayerCorpse));
                 *a=(PlayerCorpse){
                     .base.texture=scene->plr->base.texture,
-                    .base.rect=scene->plr->base.rect,
-                    .base.vel_y=200,
+                    .base.rect=(
+                        scene->plr->base.rect.y+scene->plr->base.rect.h>800?
+                        (SDL_FRect){scene->plr->base.rect.x,800-scene->plr->base.rect.h,
+                            scene->plr->base.rect.w,scene->plr->base.rect.h}:
+                        scene->plr->base.rect
+                    ),
+                    .base.vel_y=-400,
                     .base.vel_x=100,
                     .base.gravity=scene->plr->base.gravity,
                     .base.weight=scene->plr->base.weight,
@@ -381,7 +387,7 @@ void loop1(void* ptr){
                     .base.alive=1,
                     .base.sprites=scene->sprites,
                     .base.update=(SpriteUpdateFunc)PlayerCorpse_update,
-                    .base.destroy=(SpriteDestroyFunc)Sprite_destroy,
+                    .base.destroy=(SpriteDestroyFunc)Player_destroy,
                     .angle=0
                 };
                 Vector_PushBack(scene->sprites,&a);
