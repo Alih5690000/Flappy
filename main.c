@@ -106,6 +106,48 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
 
 void Wall_destroy(Sprite* s){}
 
+SDL_Texture* projectile_txt_cache;
+
+typedef struct Projectile{
+    Sprite base;
+} Projectile;
+
+void Projectile_update(Projectile* self,SDL_Renderer* renderer,float dt){
+    self->base.rect.x+=self->base.vel_x * dt;
+    self->base.rect.y+=self->base.vel_y * dt;
+    if (self->base.rect.x<0 || self->base.rect.x>1000 || self->base.rect.y<0 || self->base.rect.y>800){
+        self->base.active=0;
+    }
+    for (int i=0;i<Vector_Size(self->base.sprites);i++){
+        Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
+        if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
+        (&self->base.rect, &spr->rect)){
+            spr->alive=0;
+            self->base.active=0;
+        }
+    }
+    SDL_RenderCopyF(renderer,self->base.texture,NULL,&self->base.rect);
+}
+
+void Projectile_destroy(Projectile* self){}
+
+void CreateProjectile(float x,float y,float vel_x,float vel_y,Vector* sprites){
+    Projectile* proj=malloc(sizeof(Projectile));
+    proj->base.texture=projectile_txt_cache;
+    proj->base.rect=(SDL_FRect){x,y,10,10};
+    proj->base.vel_x=vel_x;
+    proj->base.vel_y=vel_y;
+    proj->base.gravity=NULL;
+    proj->base.weight=0.f;
+    proj->base.collidable=0;
+    proj->base.active=1;
+    proj->base.alive=1;
+    proj->base.sprites=sprites;
+    proj->base.update=(SpriteUpdateFunc)Projectile_update;
+    proj->base.destroy=(SpriteDestroyFunc)Projectile_destroy;
+    Vector_PushBack(sprites,&proj);
+}
+
 typedef struct LaserBeam{
     Sprite base;
     float timeWarning;
@@ -199,7 +241,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     }
     const Uint8* keys= SDL_GetKeyboardState(NULL);
     if (keys[SDL_SCANCODE_SPACE] && !self->pressed){
-        self->base.vel_y=-150;
+        self->base.vel_y=-250;
         self->rotation=0.f;
         self->pressed=1;
     }
@@ -418,7 +460,7 @@ void loop1(void* ptr){
     {
         if (!scene->GameOver && scene->waiting>1.5f){
             scene->waiting=0.f;
-            int y=rand()%400+200;
+            int y=rand()%300+200;
             SDL_FRect rect={1000,y,100,1000};
             Sprite* pipe=CreatePipe(rect,scene->sprites,0);
             Vector_PushBack(scene->sprites,&pipe);
@@ -426,16 +468,13 @@ void loop1(void* ptr){
             pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
             if (scene->score>=5){
-                int y;
-                while(true){
-                    y=rand()%800;
-                    if (fabs(y-scene->plr->base.rect.y)<150 || 
-                        fabs(y-scene->plr->base.rect.y)>300) continue;
-                    break;
-                }
-                SDL_FRect laserRect={1000,y,1000,20};
+                SDL_FRect laserRect={1000,rand()%400+200,1000,20};
                 Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
                 Vector_PushBack(scene->sprites,&laser);
+            }
+            if (scene->score>=10){
+                for (int i=0;i<3;i++)
+                    CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
             }
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
@@ -552,6 +591,13 @@ int main(){
     font=TTF_OpenFont("assets/Minecraft.ttf",24);
     plr_txt_cache=LoadImage("assets/Player.png",renderer);
     pipe_txt_cache=LoadImage("assets/pipe.png",renderer);
+    projectile_txt_cache=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_TARGET,10,10);
+    SDL_Texture* prev=SDL_GetRenderTarget(renderer);
+    SDL_SetRenderTarget(renderer,projectile_txt_cache);
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderTarget(renderer,prev);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
     Scene1 scene;
