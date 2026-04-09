@@ -68,6 +68,13 @@ void Write(){
     );
 }
 
+void ScaleRect(SDL_FRect* rect,float scaleX,float scaleY){
+    rect->w*=scaleX;
+    rect->h*=scaleY;
+    rect->x-=rect->w*(scaleX-1)/2.f;
+    rect->y-=rect->h*(scaleY-1)/2.f;
+}
+
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
     self->vel_x=-200;
     self->rect.x+=self->vel_x * dt;
@@ -97,8 +104,6 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
 
 void Wall_destroy(Sprite* s){}
 
-SDL_Texture LaserBeam_txt_cache;
-
 typedef struct LaserBeam{
     Sprite base;
     float timeWarning;
@@ -109,8 +114,11 @@ void LaserBeam_destroy(LaserBeam* self){}
 void LaserBeam_update(LaserBeam* self,SDL_Renderer* renderer,float dt){
     self->timeWarning+=dt;
     if (self->timeWarning<2.f){
+        SDL_FRect dangerRect=(SDL_FRect){
+            0,self->base.rect.y,1000,20
+        };
         SDL_SetRenderDrawColor(renderer,255,0,0,100);
-        SDL_RenderFillRectF(renderer,&self->base.rect);
+        SDL_RenderFillRectF(renderer,&dangerRect);
         return;
     }
     if (self->base.rect.x>0){
@@ -132,8 +140,25 @@ void LaserBeam_update(LaserBeam* self,SDL_Renderer* renderer,float dt){
             spr->alive=0;
         }
     }
-    SDL_SetRenderDrawColor(renderer,255,0,0,100);
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
     SDL_RenderFillRectF(renderer,&self->base.rect);
+}
+
+Sprite* CreateLaserBeam(SDL_FRect rect,Vector* sprites){
+    LaserBeam* beam=(LaserBeam*)malloc(sizeof(LaserBeam));
+    beam->base.texture=NULL;
+    beam->base.rect=rect;
+    beam->base.vel_x=0;
+    beam->base.vel_y=0;
+    beam->base.gravity=NULL;
+    beam->base.weight=0.f;
+    beam->base.collidable=1;
+    beam->base.active=1;
+    beam->base.alive=1;
+    beam->base.sprites=sprites;
+    beam->base.update=(SpriteUpdateFunc)LaserBeam_update;
+    beam->base.destroy=(SpriteDestroyFunc)LaserBeam_destroy;
+    return (Sprite*)beam;
 }
 
 SDL_Texture* pipe_txt_cache;
@@ -194,8 +219,14 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     self->rotation=SDL_clamp((self->base.vel_y!=0?self->base.vel_y:1)/600,-1,1)*90;
     self->base.rect.y+=self->base.vel_y * dt;
     Sprite_handleCollidableY((Sprite*)self);
-    int res=SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->rotation
+    SDL_FRect drawRect=self->base.rect;
+    ScaleRect(&drawRect,1.5f,1.5f);
+    drawRect.y+=10;
+    drawRect.x+=10;
+    int res=SDL_RenderCopyExF(renderer,self->base.texture,NULL,&drawRect,self->rotation
         ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
+    SDL_SetRenderDrawColor(renderer,0,255,0,100);
+    SDL_RenderDrawRectF(renderer,&self->base.rect);
     if (res!=0){
         emscripten_log(1,"Render error %s",SDL_GetError());
     }
@@ -218,7 +249,9 @@ void PlayerCorpse_update(PlayerCorpse* self,SDL_Renderer* renderer,float dt){
     self->base.rect.y+=self->base.vel_y * dt;
     self->base.vel_y+=*self->base.gravity * dt * self->base.weight;
     emscripten_log(1,"PlayerCorpse vel_y: %f",self->base.vel_y);
-    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,self->angle
+    SDL_FRect drawRect=self->base.rect;
+    ScaleRect(&drawRect,1.5f,1.5f);
+    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&drawRect,self->angle
         ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
     if (self->base.rect.y>800){
         self->base.active=0;
@@ -389,6 +422,17 @@ void loop1(void* ptr){
             rect=(SDL_FRect){1000,y-800,100,600};
             pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
+            if (scene->score>=5){
+                int y;
+                while(true){
+                    y=rand()%800;
+                    if (fabs(y-scene->plr->base.rect.y)<150) continue;
+                    break;
+                }
+                SDL_FRect laserRect={1000,y,1000,20};
+                Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
+                Vector_PushBack(scene->sprites,&laser);
+            }
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
