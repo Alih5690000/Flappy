@@ -467,14 +467,21 @@ void loop1(void* ptr){
             rect=(SDL_FRect){1000,y-800,100,600};
             pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
+            int vars=1;
             if (scene->score>=5){
+                vars=1;
+            }
+            if (scene->score>=10){
+                vars=2;
+            }
+            int chance=rand()%vars;
+            if (scene->score>=5 && chance==0){
                 SDL_FRect laserRect={1000,rand()%400+200,1000,20};
                 Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
                 Vector_PushBack(scene->sprites,&laser);
             }
-            if (scene->score>=10){
-                for (int i=0;i<3;i++)
-                    CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
+            if (scene->score>=10 && chance==1){
+                CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
             }
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
