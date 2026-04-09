@@ -97,6 +97,45 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
 
 void Wall_destroy(Sprite* s){}
 
+SDL_Texture LaserBeam_txt_cache;
+
+typedef struct LaserBeam{
+    Sprite base;
+    float timeWarning;
+} LaserBeam;
+
+void LaserBeam_destroy(LaserBeam* self){}
+
+void LaserBeam_update(LaserBeam* self,SDL_Renderer* renderer,float dt){
+    self->timeWarning+=dt;
+    if (self->timeWarning<2.f){
+        SDL_SetRenderDrawColor(renderer,255,0,0,100);
+        SDL_RenderFillRectF(renderer,&self->base.rect);
+        return;
+    }
+    if (self->base.rect.x>0){
+        self->base.rect.x-=1000*dt;
+    }
+    else{
+        self->base.rect.x=1000;
+        if (self->base.rect.w>1000){
+            self->base.rect.w-=1000*dt;
+        }
+        else{
+            self->base.rect.x=1000;
+            self->base.active=0;
+        }
+    }
+    for (int i=0;i<Vector_Size(self->base.sprites);i++){
+        Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
+        if (spr->alive && spr!=&self->base && SDL_HasIntersectionF(&self->base.rect, &spr->rect)){
+            spr->alive=0;
+        }
+    }
+    SDL_SetRenderDrawColor(renderer,255,0,0,100);
+    SDL_RenderFillRectF(renderer,&self->base.rect);
+}
+
 SDL_Texture* pipe_txt_cache;
 
 Sprite* CreatePipe(SDL_FRect rect, Vector* sprites,int flip){
