@@ -75,8 +75,10 @@ void ScaleRect(SDL_FRect* rect,float scaleX,float scaleY){
     rect->y-=rect->h*(scaleY-1)/2.f;
 }
 
+const float speed=300.f;
+
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
-    self->vel_x=-200;
+    self->vel_x=-speed;
     self->rect.x+=self->vel_x * dt;
     for (int i=0;i<Vector_Size(self->sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
@@ -113,7 +115,7 @@ void LaserBeam_destroy(LaserBeam* self){}
 
 void LaserBeam_update(LaserBeam* self,SDL_Renderer* renderer,float dt){
     self->timeWarning+=dt;
-    if (self->timeWarning<2.f){
+    if (self->timeWarning<1.5f){
         SDL_FRect dangerRect=(SDL_FRect){
             0,self->base.rect.y,1000,20
         };
@@ -122,12 +124,12 @@ void LaserBeam_update(LaserBeam* self,SDL_Renderer* renderer,float dt){
         return;
     }
     if (self->base.rect.x>0){
-        self->base.rect.x-=1000*dt;
+        self->base.rect.x-=2000*dt;
     }
     else{
         self->base.rect.x=1000;
         if (self->base.rect.w>1000){
-            self->base.rect.w-=1000*dt;
+            self->base.rect.w-=2000*dt;
         }
         else{
             self->base.rect.x=1000;
@@ -152,7 +154,8 @@ Sprite* CreateLaserBeam(SDL_FRect rect,Vector* sprites){
     beam->base.vel_y=0;
     beam->base.gravity=NULL;
     beam->base.weight=0.f;
-    beam->base.collidable=1;
+    beam->timeWarning=0.f;
+    beam->base.collidable=0;
     beam->base.active=1;
     beam->base.alive=1;
     beam->base.sprites=sprites;
@@ -196,7 +199,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     }
     const Uint8* keys= SDL_GetKeyboardState(NULL);
     if (keys[SDL_SCANCODE_SPACE] && !self->pressed){
-        self->base.vel_y=-300;
+        self->base.vel_y=-150;
         self->rotation=0.f;
         self->pressed=1;
     }
@@ -224,7 +227,7 @@ void Player_update(Player* self,SDL_Renderer* renderer,float dt){
     drawRect.y+=10;
     drawRect.x+=10;
     int res=SDL_RenderCopyExF(renderer,self->base.texture,NULL,&drawRect,self->rotation
-        ,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},SDL_FLIP_NONE);
+        ,&(SDL_FPoint){drawRect.w/2.f,drawRect.h/2.f},SDL_FLIP_NONE);
     SDL_SetRenderDrawColor(renderer,0,255,0,100);
     SDL_RenderDrawRectF(renderer,&self->base.rect);
     if (res!=0){
@@ -402,8 +405,8 @@ void loop1(void* ptr){
     if (scene->r2.x<scene->r2.w*-1){
         scene->r2.x=scene->r1.x+scene->r1.w;
     }
-    scene->g1.x-=200*scene->dt;
-    scene->g2.x-=200*scene->dt;
+    scene->g1.x-=speed*scene->dt;
+    scene->g2.x-=speed*scene->dt;
     if (scene->g1.x<scene->g1.w*-1){
         scene->g1.x=scene->g2.x+scene->g2.w;
     }
@@ -413,7 +416,7 @@ void loop1(void* ptr){
     SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r1);
     SDL_RenderCopyF(scene->renderer,scene->bgtxt,NULL,&scene->r2);
     {
-        if (!scene->GameOver && scene->waiting>2.5f){
+        if (!scene->GameOver && scene->waiting>1.5f){
             scene->waiting=0.f;
             int y=rand()%400+200;
             SDL_FRect rect={1000,y,100,1000};
@@ -426,7 +429,8 @@ void loop1(void* ptr){
                 int y;
                 while(true){
                     y=rand()%800;
-                    if (fabs(y-scene->plr->base.rect.y)<150) continue;
+                    if (fabs(y-scene->plr->base.rect.y)<150 || 
+                        fabs(y-scene->plr->base.rect.y)>300) continue;
                     break;
                 }
                 SDL_FRect laserRect={1000,y,1000,20};
