@@ -56,3 +56,4 @@ jobs:
           publish_dir: ./docs
           force_orphan: true
           keep_files: false
+          permissions: contents: write
