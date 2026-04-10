@@ -1,33 +1,26 @@
 name: Build & Deploy Flappy
 
-# Triggers
 on:
-  workflow_dispatch:        # allows manual run from Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout your repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cache Emscripten
-        uses: actions/cache@v4
-        with:
-          path: emsdk
-          key: emsdk-${{ runner.os }}-latest
+      - name: Set Emscripten cache path
+        run: |
+          echo "EM_CACHE=/home/runner/.emscripten_cache" >> $GITHUB_ENV
+
       - name: Cache Emscripten ports
         uses: actions/cache@v4
         with:
           path: /home/runner/.emscripten_cache
           key: emscripten-ports-${{ runner.os }}
-      - name: Set Emscripten cache path
-        run: |
-          echo "EM_CACHE=/home/runner/.emscripten_cache" >> $GITHUB_ENV
 
-      # 2️⃣ Install Emscripten
       - name: Setup Emscripten
         run: |
           git clone https://github.com/emscripten-core/emsdk.git
@@ -37,22 +30,18 @@ jobs:
           source ./emsdk_env.sh
           cd ..
 
-      # 3️⃣ Build the Flappy game
       - name: Build with Emscripten
         run: |
           source emsdk/emsdk_env.sh
-          emcc main.c -o index.html \
-          -s USE_SDL=2 \
-          -s USE_SDL_IMAGE=2 \
-          -s USE_SDL_MIXER=2 \
-          -s USE_SDL_TTF=2 \
-          -s SDL2_IMAGE_FORMATS='["png","jpg"]' \
-          -s SDL2_MIXER_FORMATS='["mp3","ogg"]' \
-          -s FORCE_FILESYSTEM=1 \
-          -s EXPORTED_RUNTIME_METHODS="['FS']" \
-          -s EXPORTED_FUNCTIONS='["_main","_Load_"]' \
-          -lidbfs.js \
-          --preload-file assets@assets \
-          -O2
+          emcc main.c -o index.html -O2
+
       - name: Show files
         run: ls -R
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          force_orphan: true
+          keep_files: false
