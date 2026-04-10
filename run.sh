@@ -1,1 +1,3 @@
-gh workflow run build.yml --ref main && gh run watch && python -m http.server 8000
+gh workflow run build.yml --ref main && gh run watch 
+#eval "$(ssh-agent -s)"
+#ssh-add ~/.ssh/id_rsa
