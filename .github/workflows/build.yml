@@ -54,10 +54,5 @@ jobs:
           -lidbfs.js \
           --preload-file assets@assets \
           -O2
-
-      # 4️⃣ Deploy to GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs   # folder with index.html, *.js, *.wasm
+      - name: Show files
+        run: ls -R
