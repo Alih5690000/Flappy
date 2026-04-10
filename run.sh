@@ -1,0 +1,1 @@
+gh workflow run build.yml --ref main
