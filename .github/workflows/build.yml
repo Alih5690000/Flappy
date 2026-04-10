@@ -2,8 +2,6 @@ name: Build & Deploy Flappy
 
 # Triggers
 on:
-  push:
-    branches: [ "main" ]   # runs on every push to main
   workflow_dispatch:        # allows manual run from Actions tab
 
 jobs:
@@ -33,7 +31,7 @@ jobs:
 
       # 4️⃣ Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v6
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./      # folder with index.html, *.js, *.wasm
