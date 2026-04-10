@@ -18,6 +18,14 @@ jobs:
         with:
           path: emsdk
           key: emsdk-${{ runner.os }}-latest
+      - name: Cache Emscripten ports
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.emscripten_cache
+          key: emscripten-ports-${{ runner.os }}
+      - name: Set Emscripten cache path
+        run: |
+          echo "EM_CACHE=/home/runner/.emscripten_cache" >> $GITHUB_ENV
 
       # 2️⃣ Install Emscripten
       - name: Setup Emscripten
@@ -52,4 +60,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./      # folder with index.html, *.js, *.wasm
+          publish_dir: ./docs   # folder with index.html, *.js, *.wasm
