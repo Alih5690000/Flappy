@@ -56,5 +56,3 @@ jobs:
           publish_dir: ./
           force_orphan: true
           keep_files: false
-          permissions: 
-            contents: write
