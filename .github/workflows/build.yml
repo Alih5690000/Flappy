@@ -37,7 +37,7 @@ jobs:
         run: |
           source emsdk/emsdk_env.sh
           emcc main.c \
-          -o docs/index.html \
+          -o index.html \
           -s USE_SDL=2 \
           -s USE_SDL_IMAGE=2 \
           -s USE_SDL_TTF=2 \
@@ -53,6 +53,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_dir: ./
           force_orphan: true
           keep_files: false
