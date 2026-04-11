@@ -425,6 +425,7 @@ void init1(Scene1* scene, SDL_Renderer* renderer,SDL_Texture* wintexture){
 }
 
 void loop1(void* ptr){
+    emscripten_log(1,"Loop start");
     Scene1* scene=(Scene1*)ptr;
     scene->start=SDL_GetTicks();
     scene->dt=(scene->start-scene->end)/1000.f;
