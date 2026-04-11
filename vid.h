@@ -1,8 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <SDL_image.h>
-#include <emscripten/html5.h>
+#include <SDL2/SDL_image.h>
 #include "vec.c"
 
 SDL_Texture* DeepCopyTexture(SDL_Renderer* renderer, SDL_Texture* src)

@@ -1,6 +1,6 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
-#include <emscripten.h>
+#include <SDL.h>
+#include <SDL_ttf.h>
+#include <emscripten/emscripten.h>
 #include "vec.c"
 #include "vid.h"
 #include "sprites.h"
