@@ -50,6 +50,11 @@ jobs:
           --preload-file assets@assets \
           --use-preload-cache \
           -O2
+          VERSION=$(date +%s)
+
+          sed -i "s/index.js/index.js?v=$VERSION/g" out/index.html
+          sed -i "s/index.wasm/index.wasm?v=$VERSION/g" out/index.html
+          sed -i "s/index.data/index.data?v=$VERSION/g" out/index.html
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
