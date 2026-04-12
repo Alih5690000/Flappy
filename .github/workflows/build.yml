@@ -36,8 +36,9 @@ jobs:
       - name: Build with Emscripten
         run: |
           source emsdk/emsdk_env.sh
+          mkdir out
           emcc main.c \
-          -o docs/index.html \
+          -o out/index.html \
           -s USE_SDL=2 \
           -s USE_SDL_IMAGE=2 \
           -s USE_SDL_TTF=2 \
@@ -49,10 +50,8 @@ jobs:
           --use-preload-cache \
           -O2
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
-          force_orphan: true
-          keep_files: false
+          name: build
+          path: out/
