@@ -586,7 +586,7 @@ void loop1(void* ptr){
 }
 
 int main(){
-    emscripten_log(1,"lol");
+    emscripten_log(1,"lol2");
     Load();
     srand(time(NULL));
     SDL_Init(SDL_INIT_EVERYTHING);
