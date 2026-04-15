@@ -129,7 +129,7 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
         self->angle+=dt*200.f;
     else if (self->base.vel_x<0)
         self->angle-=dt*200.f;
-    self->base.rect.x+=self->base.vel_y;
+    self->base.rect.x+=self->base.vel_x;
     for (int i=0;i<Vector_Size(self->base.sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
         if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
