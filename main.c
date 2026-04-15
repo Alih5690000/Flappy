@@ -135,7 +135,6 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
         if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
         (&self->base.rect, &spr->rect)){
             spr->alive=0;
-            self->base.active=0;
         }
     }
     SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,
