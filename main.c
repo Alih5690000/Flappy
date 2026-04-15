@@ -518,7 +518,7 @@ void loop1(void* ptr){
         if (!scene->GameOver && scene->waiting>1.5f){
             scene->waiting=0.f;
             int y=rand()%300+200;
-            SDL_FRect rect={1000,y,100,1000};
+            SDL_FRect rect={1000,y,100,900};
             Sprite* pipe=CreatePipe(rect,scene->sprites,0);
             Vector_PushBack(scene->sprites,&pipe);
             rect=(SDL_FRect){1000,y-800,100,600};
@@ -664,6 +664,8 @@ int main(){
     pipe_txt_cache=LoadImage("assets/pipe.png",renderer);
     projectile_txt_cache=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_TARGET,10,10);
+    saw_txt_cache=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_TARGET,50,50);
     SDL_Texture* prev=SDL_GetRenderTarget(renderer);
     SDL_SetRenderTarget(renderer,projectile_txt_cache);
     SDL_SetRenderDrawColor(renderer,255,0,0,255);
