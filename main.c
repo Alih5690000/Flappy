@@ -524,26 +524,26 @@ void loop1(void* ptr){
             rect=(SDL_FRect){1000,y-800,100,600};
             pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
-            int vars=0;
+            int vars=1;
             if (scene->score>=5){
-                vars=1;
-            }
-            if (scene->score>=10){
                 vars=2;
             }
-            if (scene->score>=15){
+            if (scene->score>=10){
                 vars=3;
             }
+            if (scene->score>=15){
+                vars=4;
+            }
             int chance=rand()%vars;
-            if (chance==0){
+            if (chance==1){
                 SDL_FRect laserRect={1000,rand()%400+200,900,20};
                 Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
                 Vector_PushBack(scene->sprites,&laser);
             }
-            if (chance==1){
+            if (chance==2){
                 CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
             }
-            if (chance==0){
+            if (chance==1){
                 emscripten_log(1,"Creating saw");
                 CreateSaw(1000,rand()%500+200,&scene->gravity,scene->sprites);
             }
