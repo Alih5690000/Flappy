@@ -114,6 +114,8 @@ typedef struct Saw{
 } Saw;
 
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
+    emscripten_log(1,"Saw update rect is %f, %f, %f, %f",
+        self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
         self->base.vel_x=-self->base.vel_x;
         if (self->base.rect.y+100>700){
@@ -543,7 +545,7 @@ void loop1(void* ptr){
             if (chance==2){
                 CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
             }
-            if (chance==1){
+            if (chance==0){
                 emscripten_log(1,"Creating saw");
                 CreateSaw(1000,rand()%500+200,&scene->gravity,scene->sprites);
             }
@@ -558,6 +560,10 @@ void loop1(void* ptr){
         for (int i=0;i<Vector_Size(scene->sprites);i++){
             Sprite* spr=*(Sprite**)Vector_Get(scene->sprites,i);
             spr->update(spr,scene->renderer,scene->dt);
+            if (spr->update==Saw_update){
+                emscripten_log(1,"Saw rect: %f, %f, %f, %f",
+                    spr->rect.x,spr->rect.y,spr->rect.w,spr->rect.h);
+            }
         }
         SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g1);
         SDL_RenderCopyF(scene->renderer,scene->ground_txt,NULL,&scene->g2);
