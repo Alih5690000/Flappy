@@ -149,7 +149,7 @@ void Saw_destroy(Saw* self){
 void CreateSaw(float x,float y,float* gravity,Vector* sprites){
     Saw* saw=malloc(sizeof(Saw));
     saw->base.texture=saw_txt_cache;
-    saw->base.rect=(SDL_FRect){x,y,50,50};
+    saw->base.rect=(SDL_FRect){x,y,25,25};
     saw->base.vel_x=-400;
     saw->base.vel_y=0;
     saw->base.gravity=gravity;
@@ -519,7 +519,7 @@ void loop1(void* ptr){
         if (!scene->GameOver && scene->waiting>1.5f){
             scene->waiting=0.f;
             int y=rand()%300+200;
-            SDL_FRect rect={1000,y,100,900};
+            SDL_FRect rect={1000,y,100,800};
             Sprite* pipe=CreatePipe(rect,scene->sprites,0);
             Vector_PushBack(scene->sprites,&pipe);
             rect=(SDL_FRect){1000,y-800,100,600};
