@@ -66,6 +66,7 @@ int ResolveX(Sprite* self, Sprite* spr){
 }
 
 void Sprite_handleCollidableX(Sprite* self){
+    if (!self->collidable) return;
     for (int i = 0; i < Vector_Size(self->sprites); i++){
         Sprite* spr = *(Sprite**)Vector_Get(self->sprites, i);
         if (!spr->collidable || spr == self) continue;
@@ -113,6 +114,7 @@ SDL_Texture* LoadImage(const char* path,SDL_Renderer* renderer){
 }
 
 void Sprite_handleCollidableY(Sprite* self){
+    if (!self->collidable) return;
     for (int i = 0; i < Vector_Size(self->sprites); i++){
         Sprite* spr = *(Sprite**)Vector_Get(self->sprites, i);
         if (!spr->collidable || spr == self) continue;
