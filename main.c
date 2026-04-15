@@ -106,6 +106,39 @@ void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
 
 void Wall_destroy(Sprite* s){}
 
+SDL_Texture* saw_txt_cache;
+
+typedef struct Saw{
+    Sprite base;
+    float angle;
+} Saw;
+
+void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
+    if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
+        self->base.vel_x=-self->base.vel_x;
+    }
+    if (self.base.vel_x>0)
+        angle+=dt*200.f;
+    else if (self.base.vel_x<0)
+        angle-=dt*200.f;
+    self->rect.base.x+=self->base.vel_y;
+    for (int i=0;i<Vector_Size(self->base.sprites);i++){
+        Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
+        if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
+        (&self->base.rect, &spr->rect)){
+            spr->alive=0;
+            self->base.active=0;
+        }
+    }
+    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect
+        self->angle,&(SDL_FPoint){self->rect.base.w/2.f,self->rect.base.h/2.f
+        SDL_FLIP_NONE});
+}
+
+void Saw_destroy(Saw* self){
+    
+}
+
 SDL_Texture* projectile_txt_cache;
 
 typedef struct Projectile{
@@ -477,7 +510,7 @@ void loop1(void* ptr){
             }
             int chance=rand()%vars;
             if (scene->score>=5 && chance==0){
-                SDL_FRect laserRect={1000,rand()%400+200,1000,20};
+                SDL_FRect laserRect={1000,rand()%400+200,900,20};
                 Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
                 Vector_PushBack(scene->sprites,&laser);
             }
