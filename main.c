@@ -75,10 +75,10 @@ void ScaleRect(SDL_FRect* rect,float scaleX,float scaleY){
     rect->y-=rect->h*(scaleY-1)/2.f;
 }
 
-const float speed=300.f;
+const float speed=-300.f;
 
 void Wall_update(Sprite* self,SDL_Renderer* renderer,float dt){
-    self->vel_x=-speed;
+    self->vel_x=speed;
     self->rect.x+=self->vel_x * dt;
     for (int i=0;i<Vector_Size(self->sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->sprites,i);
