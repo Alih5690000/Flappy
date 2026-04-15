@@ -150,7 +150,7 @@ void Saw_destroy(Saw* self){
 void CreateSaw(float x,float y,float* gravity,Vector* sprites){
     Saw* saw=malloc(sizeof(Saw));
     saw->base.texture=saw_txt_cache;
-    saw->base.rect=(SDL_FRect){x,y,50,50};
+    saw->base.rect=(SDL_FRect){x,y,100,100};
     saw->base.vel_x=-200;
     saw->base.vel_y=0;
     saw->base.gravity=gravity;
