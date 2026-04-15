@@ -117,7 +117,7 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     emscripten_log(1,"Saw update rect is %f, %f, %f, %f",
         self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
-        self->base.vel_x=-self->base.vel_x*dt;
+        self->base.vel_x=-self->base.vel_x;
         if (self->base.rect.y+100>700){
             self->base.rect.y-=100;
         }
@@ -129,7 +129,7 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
         self->angle+=dt*200.f;
     else if (self->base.vel_x<0)
         self->angle-=dt*200.f;
-    self->base.rect.x+=self->base.vel_x;
+    self->base.rect.x+=self->base.vel_x*dt;
     for (int i=0;i<Vector_Size(self->base.sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
         if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
@@ -150,8 +150,8 @@ void Saw_destroy(Saw* self){
 void CreateSaw(float x,float y,float* gravity,Vector* sprites){
     Saw* saw=malloc(sizeof(Saw));
     saw->base.texture=saw_txt_cache;
-    saw->base.rect=(SDL_FRect){x,y,100,100};
-    saw->base.vel_x=-200;
+    saw->base.rect=(SDL_FRect){x,y,50,50};
+    saw->base.vel_x=-400;
     saw->base.vel_y=0;
     saw->base.gravity=gravity;
     saw->base.weight=1.0f;
