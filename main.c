@@ -117,7 +117,7 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     emscripten_log(1,"Saw update rect is %f, %f, %f, %f",
         self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
-        self->base.vel_x=-self->base.vel_x;
+        self->base.vel_x=-self->base.vel_x*dt;
         if (self->base.rect.y+100>700){
             self->base.rect.y-=100;
         }
