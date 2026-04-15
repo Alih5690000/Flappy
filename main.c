@@ -116,12 +116,18 @@ typedef struct Saw{
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
         self->base.vel_x=-self->base.vel_x;
+        if (self->base.rect.y+100>700){
+            self->base.rect.y-=100;
+        }
+        else{
+            self->base.rect.y+=100;
+        }
     }
-    if (self.base.vel_x>0)
-        angle+=dt*200.f;
-    else if (self.base.vel_x<0)
-        angle-=dt*200.f;
-    self->rect.base.x+=self->base.vel_y;
+    if (self->base.vel_x>0)
+        self->angle+=dt*200.f;
+    else if (self->base.vel_x<0)
+        self->angle-=dt*200.f;
+    self->base.rect.x+=self->base.vel_y;
     for (int i=0;i<Vector_Size(self->base.sprites);i++){
         Sprite* spr=*(Sprite**)Vector_Get(self->base.sprites,i);
         if (spr->alive && spr!=&self->base && SDL_HasIntersectionF
@@ -130,13 +136,30 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
             self->base.active=0;
         }
     }
-    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect
-        self->angle,&(SDL_FPoint){self->rect.base.w/2.f,self->rect.base.h/2.f
-        SDL_FLIP_NONE});
+    SDL_RenderCopyExF(renderer,self->base.texture,NULL,&self->base.rect,
+        self->angle,&(SDL_FPoint){self->base.rect.w/2.f,self->base.rect.h/2.f},
+        SDL_FLIP_NONE);
 }
 
 void Saw_destroy(Saw* self){
     
+}
+
+void CreateSaw(float x,float y,float* gravity,Vector* sprites){
+    Saw* saw=malloc(sizeof(Saw));
+    saw->base.texture=saw_txt_cache;
+    saw->base.rect=(SDL_FRect){x,y,50,50};
+    saw->base.vel_x=-200;
+    saw->base.vel_y=0;
+    saw->base.gravity=gravity;
+    saw->base.weight=1.0f;
+    saw->base.collidable=0;
+    saw->base.active=1;
+    saw->base.alive=0;
+    saw->base.sprites=sprites;
+    saw->base.update=(SpriteUpdateFunc)Saw_update;
+    saw->base.destroy=(SpriteDestroyFunc)Saw_destroy;
+    Vector_PushBack(sprites,&saw);
 }
 
 SDL_Texture* projectile_txt_cache;
@@ -508,14 +531,20 @@ void loop1(void* ptr){
             if (scene->score>=10){
                 vars=2;
             }
+            if (scene->score>=15){
+                vars=3;
+            }
             int chance=rand()%vars;
-            if (scene->score>=5 && chance==0){
+            if (chance==0){
                 SDL_FRect laserRect={1000,rand()%400+200,900,20};
                 Sprite* laser=CreateLaserBeam(laserRect,scene->sprites);
                 Vector_PushBack(scene->sprites,&laser);
             }
-            if (scene->score>=10 && chance==1){
+            if (chance==1){
                 CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
+            }
+            if (chance==2){
+                CreateSaw(1000,rand()%500+200,&scene->gravity,scene->sprites);
             }
         }
         for (int i=Vector_Size(scene->sprites)-1;i>=0;i--){
@@ -639,6 +668,9 @@ int main(){
     SDL_SetRenderTarget(renderer,projectile_txt_cache);
     SDL_SetRenderDrawColor(renderer,255,0,0,255);
     SDL_RenderClear(renderer);
+    SDL_SetRenderTarget(renderer,saw_txt_cache);
+    SDL_SetRenderDrawColor(renderer,255,255,0,255);
+    SDL_RenderFillRect(renderer,NULL);
     SDL_SetRenderTarget(renderer,prev);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     wintexture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_TARGET,1000,800);
