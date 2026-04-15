@@ -524,7 +524,7 @@ void loop1(void* ptr){
             rect=(SDL_FRect){1000,y-800,100,600};
             pipe=CreatePipe(rect,scene->sprites,1);
             Vector_PushBack(scene->sprites,&pipe);
-            int vars=1;
+            int vars=0;
             if (scene->score>=5){
                 vars=1;
             }
@@ -543,7 +543,8 @@ void loop1(void* ptr){
             if (chance==1){
                 CreateProjectile(1000,rand()%800, -500, rand()%200-100, scene->sprites);
             }
-            if (chance==2){
+            if (chance==0){
+                emscripten_log(1,"Creating saw");
                 CreateSaw(1000,rand()%500+200,&scene->gravity,scene->sprites);
             }
         }
