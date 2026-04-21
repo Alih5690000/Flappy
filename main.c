@@ -111,9 +111,20 @@ SDL_Texture* saw_txt_cache;
 typedef struct Saw{
     Sprite base;
     float angle;
+    int phase;
 } Saw;
 
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
+    self->timer-=dt;
+    if (self->timer>0.f){
+        SDL_RenderFillRectF(renderer,&(SDL_FRect){
+            self->rect.x-1000.f,
+            self->rect.y,
+            2000.f,
+            self->rect.h
+        });
+        return;
+    }
     emscripten_log(1,"Saw update rect is %f, %f, %f, %f",
         self->base.rect.x,self->base.rect.y,self->base.rect.w,self->base.rect.h);
     if (self->base.rect.x+self->base.rect.w<0 && self->base.vel_x<0){
@@ -124,6 +135,7 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
         else{
             self->base.rect.y+=100;
         }
+        self->timer=1.f;
     }
     if (self->base.vel_x>0)
         self->angle+=dt*200.f;
@@ -161,6 +173,7 @@ void CreateSaw(float x,float y,float* gravity,Vector* sprites){
     saw->base.collidable=0;
     saw->base.active=1;
     saw->base.alive=0;
+    saw->timer=1.f;
     saw->base.sprites=sprites;
     saw->base.update=(SpriteUpdateFunc)Saw_update;
     saw->base.destroy=(SpriteDestroyFunc)Saw_destroy;
