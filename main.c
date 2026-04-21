@@ -118,10 +118,10 @@ void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     self->timer-=dt;
     if (self->timer>0.f){
         SDL_RenderFillRectF(renderer,&(SDL_FRect){
-            self->rect.x-1000.f,
-            self->rect.y,
+            self->base.rect.x-1000.f,
+            self->base.rect.y,
             2000.f,
-            self->rect.h
+            self->base.rect.h
         });
         return;
     }
