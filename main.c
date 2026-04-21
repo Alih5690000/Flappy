@@ -174,7 +174,7 @@ void CreateSaw(float x,float y,float* gravity,Vector* sprites){
     saw->base.collidable=0;
     saw->base.active=1;
     saw->base.alive=0;
-    saw->timer=1.f;
+    saw->timer=0.f;
     saw->base.sprites=sprites;
     saw->base.update=(SpriteUpdateFunc)Saw_update;
     saw->base.destroy=(SpriteDestroyFunc)Saw_destroy;
