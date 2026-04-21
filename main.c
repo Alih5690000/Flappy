@@ -111,7 +111,7 @@ SDL_Texture* saw_txt_cache;
 typedef struct Saw{
     Sprite base;
     float angle;
-    int phase;
+    float timer;
 } Saw;
 
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
