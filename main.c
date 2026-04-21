@@ -117,7 +117,7 @@ typedef struct Saw{
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     self->timer-=dt;
     if (self->timer>0.f){
-        SDL_SetRenderDrawColor(renderer,255,255,0,255);
+        SDL_SetRenderDrawColor(renderer,255,255,0,155);
         SDL_RenderFillRectF(renderer,&(SDL_FRect){
             self->base.rect.x-1000.f,
             self->base.rect.y,
@@ -536,7 +536,7 @@ void loop1(void* ptr){
     {
         if (!scene->GameOver && scene->waiting>1.5f){
             scene->waiting=0.f;
-            int y=rand()%300+200;
+            int y=rand()%300+300;
             SDL_FRect rect={1000,y,100,800};
             Sprite* pipe=CreatePipe(rect,scene->sprites,0);
             Vector_PushBack(scene->sprites,&pipe);
