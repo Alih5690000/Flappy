@@ -117,7 +117,10 @@ typedef struct Saw{
 void Saw_update(Saw* self,SDL_Renderer* renderer,float dt){
     self->timer-=dt;
     if (self->timer>0.f){
-        SDL_SetRenderDrawColor(renderer,255,255,0,155);
+        if (self->base.rect.x+self->base.rect.w<0)
+            SDL_SetRenderDrawColor(renderer,255,155,0,155);
+        else
+            SDL_SetRenderDrawColor(renderer,255,255,0,155);
         SDL_RenderFillRectF(renderer,&(SDL_FRect){
             self->base.rect.x-1000.f,
             self->base.rect.y,
